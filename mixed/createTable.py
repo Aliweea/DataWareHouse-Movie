@@ -15,28 +15,30 @@ ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;"""
 
 # create table t_movie
-create_movie = """CREATE TABLE `t_movie` (
-  `movie_id` VARCHAR(40) NOT NULL,
-  `movie_name` VARCHAR(400) NOT NULL,
-  `average_rating` FLOAT NULL,
-  `studio` VARCHAR(100) NULL,
-  `mpaa_rating` VARCHAR(100) NULL,
-  `runtime` INT(3) NULL,
-  `description` TEXT(4000) NULL,
-  `rank` INT(10) NULL,
-  `year` INT(4) NULL,
-  `month` INT(2) NULL,
-  `day` INT(2) NULL,
+create_movie = """CREATE TABLE `mixeddb`.`t_movie` (
+  `movie_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `product_id` varchar(40) DEFAULT NULL,
+  `movie_name` varchar(400) NOT NULL,
+  `average_rating` float DEFAULT NULL,
+  `studio` varchar(100) DEFAULT NULL,
+  `mpaa_rating` varchar(100) DEFAULT NULL,
+  `runtime` int(3) DEFAULT NULL,
+  `description` text,
+  `rank` int(10) DEFAULT NULL,
+  `year` int(4) DEFAULT NULL,
+  `month` int(2) DEFAULT NULL,
+  `day` int(2) DEFAULT NULL,
   `language_name` varchar(100) DEFAULT NULL,
   `genre_name` varchar(45) DEFAULT NULL,
-  `director_id` int(11) DEFAULT NULL,
-  `actor_id` int(11) DEFAULT NULL,
-  `review_id` int(11) DEFAULT NULL,
-  PRIMARY KEY (`movie_id`),
+  `director_id` int(11) NOT NULL DEFAULT '0',
+  `actor_id` int(11) NOT NULL DEFAULT '0',
+  `review_id` int(11) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`movie_id`,`director_id`,`actor_id`,`review_id`),
   KEY `fk1_director_idx` (`director_id`),
   KEY `fk2_actor_idx` (`actor_id`),
   KEY `fk3_time_idx` (`year`,`day`,`month`),
   KEY `fk4_review_idx` (`review_id`),
+  KEY `fk_movie_to_time` (`year`,`month`,`day`),
   CONSTRAINT `fk4_movie_to_review` 
     FOREIGN KEY (`review_id`) 
     REFERENCES `t_review` (`review_id`) 
@@ -52,13 +54,13 @@ create_movie = """CREATE TABLE `t_movie` (
     REFERENCES `t_actor` (`actor_id`) 
     ON DELETE CASCADE 
     ON UPDATE CASCADE,
-  CONSTRAINT `fk_movie_to_time`
-    FOREIGN KEY (`year` , `month` , `day`)
-    REFERENCES `t_time` (`year` , `month` , `day`)
-    ON DELETE SET NULL
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8;"""
+  CONSTRAINT `fk_movie_to_time` 
+    FOREIGN KEY (`year`, `month`, `day`) 
+    REFERENCES `t_time` (`year`, `month`, `day`) 
+    ON DELETE SET NULL 
+    ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+"""
 
 # create table t_director
 create_director = """CREATE TABLE `mixeddb`.`t_director` (

@@ -202,8 +202,8 @@ def recreate_relation_table():
     cursor.execute(create_actor)
     cursor.execute(create_act)
     cursor.execute(create_coopearte)
-    # cursor.execute(create_user)
-    # cursor.execute(create_review)
+    cursor.execute(create_user)
+    cursor.execute(create_review)
 
     # 关闭数据库连接
     db.close()
