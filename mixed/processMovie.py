@@ -7,6 +7,14 @@ import json
 from relation.preprocess import *
 from mixed.createTable import *
 
+# ----------------- CONSTANT BEGIN ----------------
+
+IS_STAR = 1
+NOT_STAR = 0
+RE_NAME = r"^[a-zA-Z]{1}([a-zA-Z]|[.\s]|·){0,200}$"
+
+# ----------------- CONSTANT END  -----------------
+
 # ------------------- SQL BEGIN ---------------------------
 
 # SQL 插入t_time语句
@@ -15,8 +23,8 @@ sql_time = "INSERT IGNORE INTO t_time (year, month, day, season, weekday) VALUES
 # SQL 插入t_movie语句
 sql_movie = """INSERT IGNORE INTO t_movie
 (movie_id, movie_name, average_rating, studio, mpaa_rating, runtime, description, rank, year, month, day,
-languages, genres, directors, actors)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+languages, genres, directors, stars, actors)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
 """
 
 # --------------------- SQL END ------------------------
@@ -69,8 +77,8 @@ def load_data(filename):
             description = data.get("desc")
             rank = data.get("rank")
 
-            str_languag = ''
             if languages is not None:
+                str_languag = ''
                 languages = languages.split(", ")
                 for language_name in languages:
                     str_languag += ',' + language_name
@@ -88,18 +96,17 @@ def load_data(filename):
                     str_director += ',' + director_name
                 directors = str_director
 
-            str_actor = ''
-            actors = None
             if starring is not None:
-                for actor_name in starring:
-                    str_actor += ',' + actor_name
+                str_star = ''
+                for star_name in starring:
+                    str_star += ',' + star_name
+                starring = str_star
 
             if supporting_actors is not None:
+                str_actor = ''
                 for actor_name in supporting_actors:
                     str_actor += ',' + actor_name
-
-            if str_actor != '':
-                actors = str_actor
+                supporting_actors = str_actor
 
             if release_date is not None:
                 date_time = time.strptime(release_date, '%B %d, %Y')
@@ -108,11 +115,11 @@ def load_data(filename):
                                    season, date_time.tm_wday))
                 param_movie.append((movie_id, movie_name, average_rating, studio, mpaa_rating, runtime, description,
                                     rank, date_time.tm_year, date_time.tm_mon, date_time.tm_mday,
-                                    languages, genres, directors, actors))
+                                    languages, genres, directors, starring, supporting_actors))
             else:
                 param_movie.append((movie_id, movie_name, average_rating, studio, mpaa_rating, runtime, description,
                                     rank, None, None, None,
-                                    languages, genres, directors, actors))
+                                    languages, genres, directors, starring, supporting_actors))
 
             if nrow % 5000 == 0:
                 execute_insert_many()

@@ -39,21 +39,17 @@ create_movie = """CREATE TABLE `datawarehouse`.`t_movie` (
 
 # create table t_director
 create_director = """CREATE TABLE `datawarehouse`.`t_director` (
-                          `director_id` INT NOT NULL AUTO_INCREMENT,
-                          `director_name` VARCHAR(150) NOT NULL,
-                          PRIMARY KEY (`director_id`),
-                          UNIQUE KEY `director_name_UNIQUE` (`director_name`))
+                          `director_name` VARCHAR(200) NOT NULL,
+                          PRIMARY KEY (`director_name`))
                         ENGINE = InnoDB
                         DEFAULT CHARACTER SET = utf8;"""
 
 # create table t_actor
 create_actor = """CREATE TABLE `datawarehouse`.`t_actor` (
-                      `actor_id` INT NOT NULL AUTO_INCREMENT,
-                      `actor_name` VARCHAR(250) NOT NULL,
-                      PRIMARY KEY (`actor_id`),
-                      UNIQUE KEY `actor_name_UNIQUE` (`actor_name`))
-                    ENGINE = InnoDB
-                    DEFAULT CHARACTER SET = utf8;"""
+                          `actor_name` VARCHAR(200) NOT NULL,
+                          PRIMARY KEY (`actor_name`))
+                        ENGINE = InnoDB
+                        DEFAULT CHARACTER SET = utf8;"""
 
 # create table tr_movie_language
 create_language = """CREATE TABLE `datawarehouse`.`tr_movie_language` (
@@ -84,17 +80,17 @@ create_genre = """CREATE TABLE `datawarehouse`.`tr_movie_genre` (
 # create table tr_direct
 create_direct = """CREATE TABLE `datawarehouse`.`tr_direct` (
                       `movie_id` VARCHAR(40) NOT NULL,
-                      `director_id` INT NOT NULL,
-                      PRIMARY KEY (`movie_id`, `director_id`),
-                      INDEX `fk2_direct_idx` (`director_id` ASC),
+                      `director_name` VARCHAR(200) NOT NULL,
+                      PRIMARY KEY (`movie_id`, `director_name`),
+                      INDEX `fk2_direct_idx` (`director_name` ASC),
                       CONSTRAINT `fk1_direct`
                         FOREIGN KEY (`movie_id`)
                         REFERENCES `datawarehouse`.`t_movie` (`movie_id`)
                         ON DELETE CASCADE
                         ON UPDATE CASCADE,
                       CONSTRAINT `fk2_direct`
-                        FOREIGN KEY (`director_id`)
-                        REFERENCES `datawarehouse`.`t_director` (`director_id`)
+                        FOREIGN KEY (`director_name`)
+                        REFERENCES `datawarehouse`.`t_director` (`director_name`)
                         ON DELETE CASCADE
                         ON UPDATE CASCADE)
                     ENGINE = InnoDB
@@ -103,18 +99,18 @@ create_direct = """CREATE TABLE `datawarehouse`.`tr_direct` (
 # create table tr_act
 create_act = """CREATE TABLE `datawarehouse`.`tr_act` (
                   `movie_id` VARCHAR(40) NOT NULL,
-                  `actor_id` INT NOT NULL,
+                  `actor_name` VARCHAR(200) NOT NULL,
                   `is_star` INT(1) NOT NULL,
-                  PRIMARY KEY (`movie_id`, `actor_id`, `is_star`),
-                  INDEX `fk2_act_idx` (`actor_id` ASC),
+                  PRIMARY KEY (`movie_id`, `actor_name`, `is_star`),
+                  INDEX `fk2_act_idx` (`actor_name` ASC),
                   CONSTRAINT `fk1_act`
                     FOREIGN KEY (`movie_id`)
                     REFERENCES `datawarehouse`.`t_movie` (`movie_id`)
                     ON DELETE CASCADE
                     ON UPDATE CASCADE,
                   CONSTRAINT `fk2_act`
-                    FOREIGN KEY (`actor_id`)
-                    REFERENCES `datawarehouse`.`t_actor` (`actor_id`)
+                    FOREIGN KEY (`actor_name`)
+                    REFERENCES `datawarehouse`.`t_actor` (`actor_name`)
                     ON DELETE CASCADE
                     ON UPDATE CASCADE)
                 ENGINE = InnoDB
@@ -122,19 +118,19 @@ create_act = """CREATE TABLE `datawarehouse`.`tr_act` (
 
 # create table tr_cooperate
 create_coopearte = """CREATE TABLE `datawarehouse`.`tr_cooperate` (
-                          `director_id` INT NOT NULL,
-                          `actor_id` INT NOT NULL,
+                          `director_name` VARCHAR(200) NOT NULL,
+                          `actor_name` VARCHAR(200) NOT NULL,
                           `cooperate_times` INT(3) NULL,
-                          PRIMARY KEY (`director_id`, `actor_id`),
-                          INDEX `fk2_coopearte_idx` (`actor_id` ASC),
+                          PRIMARY KEY (`director_name`, `actor_name`),
+                          INDEX `fk2_coopearte_idx` (`actor_name` ASC),
                           CONSTRAINT `fk1_cooperate`
-                            FOREIGN KEY (`director_id`)
-                            REFERENCES `datawarehouse`.`t_director` (`director_id`)
+                            FOREIGN KEY (`director_name`)
+                            REFERENCES `datawarehouse`.`t_director` (`director_name`)
                             ON DELETE CASCADE
                             ON UPDATE CASCADE,
                           CONSTRAINT `fk2_coopearte`
-                            FOREIGN KEY (`actor_id`)
-                            REFERENCES `datawarehouse`.`t_actor` (`actor_id`)
+                            FOREIGN KEY (`actor_name`)
+                            REFERENCES `datawarehouse`.`t_actor` (`actor_name`)
                             ON DELETE CASCADE
                             ON UPDATE CASCADE)
                         ENGINE = InnoDB

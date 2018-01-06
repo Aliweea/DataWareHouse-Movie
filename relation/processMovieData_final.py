@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
-# 获取tr_direct表中director_id字段的方法
-# 之前：处理数据时通过list.index()查找
-# 之后：处理数据时保存director_name，之后通过sql语句查找director_id
+# 将t_director和t-actor的主键改为name
+
 
 import codecs
 import json
+import re
 
 from preprocess import *
 from relation.createTable import *
@@ -15,6 +15,7 @@ from relation.createTable import *
 
 IS_STAR = 1
 NOT_STAR = 0
+RE_NAME = r"^[a-zA-Z]{1}([a-zA-Z]|[.\s]|·){0,200}$"
 
 # ----------------- CONSTANT END  -----------------
 
@@ -43,37 +44,16 @@ sql_director = "INSERT IGNORE INTO t_director (director_name) VALUES (%s)"
 sql_actor = "INSERT IGNORE INTO t_actor (actor_name) VALUES (%s)"
 
 # SQL 插入tr_direct语句
-sql_direct = """INSERT IGNORE INTO tr_direct (movie_id, director_id) 
-SELECT %s, td.director_id FROM t_director td WHERE director_name=%s"""
+sql_direct = "INSERT IGNORE INTO tr_direct (movie_id, director_name) VALUES (%s, %s)"
 
-# SQL 插入tr_direct语句
-sql_act = """INSERT IGNORE INTO tr_act (movie_id, is_star, actor_id) 
-SELECT %s, %s, ta.actor_id FROM t_actor ta WHERE actor_name=%s"""
-
-# # SQL 插入tr_cooperate语句
-# sql_cooperate = "INSERT INTO tr_cooperate (director_id, actor_id, cooperate_times) VALUES (%s, %s, %s)"
+# SQL 插入tr_act语句
+sql_act = "INSERT IGNORE INTO tr_act (movie_id, actor_name, is_star) VALUES (%s, %s, %s)"
 
 # SQL 插入tr_cooperate语句
-sql_cooperate = """INSERT IGNORE INTO tr_cooperate (director_id, actor_id, cooperate_times) 
-SELECT * FROM (SELECT td.director_id, ta.actor_id 
-                FROM t_director td JOIN t_actor ta JOIN tmp_cooperate tc
-                WHERE td.director_name=tc.director_name and ta.actor_name=tc.actor_name) as tmp"""
+sql_cooperate = "INSERT IGNORE INTO tr_cooperate (director_name, actor_name, cooperate_times) VALUES (%s, %s, -1)"
 
-# SQL 创建tmp_coopearte
-create_tmp_coopearte = """CREATE TABLE `tmp_cooperate` (
-                              `director_name` varchar(100) NOT NULL,
-                              `actor_name` varchar(250) NOT NULL,
-                              `cooperate_times` INT(4) NOT NULL,
-                              PRIMARY KEY (`director_name`, `actor_name`),
-                              UNIQUE KEY `actor_name_UNIQUE` (`actor_name`))
-                            ENGINE = InnoDB
-                            DEFAULT CHARACTER SET = utf8;"""
-
-# SQL 插入tr_cooperate语句
-sql_tmp_cooperate = "INSERT IGNORE INTO tmp_cooperate (director_name, actor_name, cooperate_times) VALUES (%s, %s, 0)"
-
-# SQL 更新tmp_cooperate
-update_tmp_cooperate = """UPDATE tmp_cooperate SET cooperate_times=cooperate_times+1 
+# SQL 更新tr_cooperate
+update_cooperate = """UPDATE tr_cooperate SET cooperate_times=cooperate_times+1 
 WHERE director_name=%s and actor_name=%s"""
 
 # --------------------- SQL END ------------------------
@@ -106,8 +86,8 @@ def execute_insert_many():
     cursor.executemany(sql_actor, param_actor)
     cursor.executemany(sql_direct, param_direct)
     cursor.executemany(sql_act, param_act)
-    cursor.executemany(sql_tmp_cooperate, param_cooperate)
-    cursor.executemany(update_tmp_cooperate, param_cooperate)
+    cursor.executemany(sql_cooperate, param_cooperate)
+    cursor.executemany(update_cooperate, param_cooperate)
     db.commit()
 
 
@@ -165,39 +145,57 @@ def load_data(filename):
                 param_movie.append((movie_id, movie_name, average_rating, studio, mpaa_rating, runtime, description,
                                     rank, None, None, None))
 
+            pattern = re.compile(RE_NAME)
+
             if languages is not None:
                 languages = languages.split(", ")
                 for language_name in languages:
-                    param_language.append((movie_id, language_name))
+                    sub_languages = pattern.findall(language_name)
+                    for sub_language in sub_languages:
+                        param_language.append((movie_id, sub_language))
 
             if genres is not None:
                 for genre_name in genres:
-                    param_genre.append((movie_id, genre_name))
+                    sub_genres = pattern.findall(genre_name)
+                    for sub_genre in sub_genres:
+                        param_genre.append((movie_id, sub_genre))
 
             if directors is not None:
                 for director_name in directors:
-                    param_director.append((director_name,))
-                    param_direct.append((movie_id, director_name))
+                    sub_directors = pattern.findall(director_name)
+                    for sub_director in sub_directors:
+                        param_director.append((sub_director,))
+                        param_direct.append((movie_id, sub_director))
 
             if starring is not None:
-                for actor_name in starring:
-                    param_actor.append((actor_name,))
-                    param_act.append((movie_id, IS_STAR, actor_name))
+                for star_name in starring:
+                    sub_stars = pattern.findall(star_name)
+                    for sub_star in sub_stars:
+                        param_actor.append((sub_star,))
+                        param_act.append((movie_id, sub_star, IS_STAR))
 
             if supporting_actors is not None:
                 for actor_name in supporting_actors:
-                    param_actor.append((actor_name,))
-                    param_act.append((movie_id, NOT_STAR, actor_name))
+                    sub_actors = pattern.findall(actor_name)
+                    for sub_actor in sub_actors:
+                        param_actor.append((sub_actor,))
+                        param_act.append((movie_id, sub_actor, NOT_STAR))
 
             if directors is not None:
                 for director_name in directors:
-                    if starring is not None:
-                        for actor_name in starring:
-                            param_cooperate.append((director_name, actor_name))
+                    sub_directors = pattern.findall(director_name)
+                    for sub_director in sub_directors:
+                        if starring is not None:
+                            for star_name in starring:
+                                sub_stars = pattern.findall(star_name)
+                                for sub_star in sub_stars:
+                                    param_cooperate.append((sub_director, sub_star))
 
-                    if supporting_actors is not None:
-                        for actor_name in supporting_actors:
-                            param_cooperate.append((director_name, actor_name))
+                        if supporting_actors is not None:
+                            for actor_name in supporting_actors:
+                                sub_actors = pattern.findall(actor_name)
+                                for sub_actor in sub_actors:
+                                    param_cooperate.append((sub_directors, sub_actor))
 
             if nrow % 10000 == 0:
                 execute_insert_many()
@@ -222,10 +220,6 @@ if __name__=="__main__":
     # 使用cursor()方法获取操作游标
     cursor = db.cursor()
 
-    cursor.execute("DROP TABLE IF EXISTS tmp_cooperate")
-
-    cursor.execute(create_tmp_coopearte)
-
     load_data('../data/amazon1.json')
     load_data('../data/amazon2.json')
     load_data('../data/amazon3.json')
@@ -233,8 +227,6 @@ if __name__=="__main__":
     load_data('../data/amazon5.json')
 
     cursor.execute(sql_cooperate)
-
-    cursor.execute("DROP TABLE IF EXISTS tmp_cooperate")
 
     db.commit()
 

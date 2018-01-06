@@ -30,6 +30,7 @@ create_movie = """CREATE TABLE `mixeddb`.`t_movie` (
   `languages` varchar(500) DEFAULT NULL,
   `genres` varchar(500) DEFAULT NULL,
   `directors` VARCHAR(1000) DEFAULT NULL,
+  `stars` VARCHAR(1000) DEFAULT NULL,
   `actors` VARCHAR(1000) DEFAULT NULL,
   PRIMARY KEY (`movie_id`),
   KEY `fk_movie_to_time` (`year`,`month`,`day`),
