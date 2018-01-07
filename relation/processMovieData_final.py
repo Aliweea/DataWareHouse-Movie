@@ -15,7 +15,7 @@ from relation.createTable import *
 
 IS_STAR = 1
 NOT_STAR = 0
-RE_NAME = r"^[a-zA-Z]{1}([a-zA-Z]|[.\s]|·){0,200}$"
+RE_NAME = r"[a-zA-Z]{1}[a-zA-Z\s]{0,200}\b"
 
 # ----------------- CONSTANT END  -----------------
 

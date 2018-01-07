@@ -3,6 +3,7 @@
 
 import codecs
 import json
+import re
 
 from relation.preprocess import *
 from mixed.createTable import *
@@ -11,7 +12,7 @@ from mixed.createTable import *
 
 IS_STAR = 1
 NOT_STAR = 0
-RE_NAME = r"^[a-zA-Z]{1}([a-zA-Z]|[.\s]|·){0,200}$"
+RE_NAME = r"[a-zA-Z]{1}[a-zA-Z\s]{0,200}\b"
 
 # ----------------- CONSTANT END  -----------------
 
@@ -23,7 +24,7 @@ sql_time = "INSERT IGNORE INTO t_time (year, month, day, season, weekday) VALUES
 # SQL 插入t_movie语句
 sql_movie = """INSERT IGNORE INTO t_movie
 (movie_id, movie_name, average_rating, studio, mpaa_rating, runtime, description, rank, year, month, day,
-languages, genres, directors, stars, actors)
+languages, genres, director_name, actor_name, is_star)
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
 """
 
@@ -36,7 +37,70 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
 param_time = []
 param_movie = []
 
+movie_id = ''
+movie_name = ''
+languages = ''
+release_date = ''
+average_rating = ''
+studio = ''
+mpaa_rating = ''
+genres = ''
+runtime = ''
+description = ''
+rank = ''
+directors = ''
+starring = ''
+supporting_actors = ''
+
+pattern = re.compile(RE_NAME)
+
 # ------------------ VARIABLE END ----------------------
+
+def process_line_data():
+    global directors, pattern
+    if directors is not None:
+        for director_name in directors:
+            sub_directors = pattern.findall(director_name)
+            for sub_director in sub_directors:
+                process_actor(sub_director)
+    else:
+        process_actor(None)
+
+
+def process_actor(director_name):
+    global starring, supporting_actors, pattern
+    if starring is not None:
+        for star_name in starring:
+            sub_stars = pattern.findall(star_name)
+            for sub_star in sub_stars:
+                process_date(director_name, sub_star, IS_STAR)
+
+    if supporting_actors is not None:
+        for actor_name in supporting_actors:
+            sub_actors = pattern.findall(actor_name)
+            for sub_actor in sub_actors:
+                process_date(director_name, sub_actor, NOT_STAR)
+    else:
+        process_date(director_name, None, NOT_STAR)
+
+
+def process_date(director_name, actor_name, is_star):
+    global param_director, param_movie,\
+        movie_id, movie_name, languages, release_date, average_rating, \
+        studio, mpaa_rating, genres, runtime, description, rank
+    if release_date is not None:
+        date_time = time.strptime(release_date, '%B %d, %Y')
+        season = getSeason(date_time.tm_mon)
+        param_time.append((date_time.tm_year, date_time.tm_mon, date_time.tm_mday,
+                           season, date_time.tm_wday))
+        param_movie.append((movie_id, movie_name, average_rating, studio, mpaa_rating, runtime, description,
+                            rank, date_time.tm_year, date_time.tm_mon, date_time.tm_mday,
+                            languages, genres, director_name, actor_name, is_star))
+    else:
+        param_movie.append((movie_id, movie_name, average_rating, studio, mpaa_rating, runtime, description,
+                            rank, None, None, None,
+                            languages, genres, director_name, actor_name, is_star))
+
 
 def execute_insert_many():
     global param_director, param_actor, param_time, param_movie
@@ -52,9 +116,8 @@ def clear_params():
 
 
 def load_data(filename):
-    global param_director, param_movie,\
-        movie_id, movie_name, languages, directors, starring, supporting_actors, \
-        release_date, average_rating, studio, mpaa_rating, genres, runtime, description, rank
+    global movie_id, movie_name, languages, directors, starring, supporting_actors, \
+        release_date, average_rating, studio, mpaa_rating, genres, runtime, description, rank, pattern
     with codecs.open(filename, encoding='utf-8') as f:
         nrow = 0
         for line in f:
@@ -81,45 +144,21 @@ def load_data(filename):
                 str_languag = ''
                 languages = languages.split(", ")
                 for language_name in languages:
-                    str_languag += ',' + language_name
-                languages = str_languag
+                    sub_languages = pattern.findall(language_name)
+                    for sub_language in sub_languages:
+                        str_languag += sub_language + ','
+                languages = str_languag[:len(str_languag)-1]
 
             if genres  is not None:
                 str_genre = ''
                 for genre_name in genres:
-                    str_genre += ',' + genre_name
-                genres = str_genre
+                    sub_genres = pattern.findall(genre_name)
+                    for sub_genre in sub_genres:
+                        str_genre += sub_genre + ','
+                genres = str_genre[:len(str_genre)-1]
 
-            if directors is not None:
-                str_director = ''
-                for director_name in directors:
-                    str_director += ',' + director_name
-                directors = str_director
+            process_line_data()
 
-            if starring is not None:
-                str_star = ''
-                for star_name in starring:
-                    str_star += ',' + star_name
-                starring = str_star
-
-            if supporting_actors is not None:
-                str_actor = ''
-                for actor_name in supporting_actors:
-                    str_actor += ',' + actor_name
-                supporting_actors = str_actor
-
-            if release_date is not None:
-                date_time = time.strptime(release_date, '%B %d, %Y')
-                season = getSeason(date_time.tm_mon)
-                param_time.append((date_time.tm_year, date_time.tm_mon, date_time.tm_mday,
-                                   season, date_time.tm_wday))
-                param_movie.append((movie_id, movie_name, average_rating, studio, mpaa_rating, runtime, description,
-                                    rank, date_time.tm_year, date_time.tm_mon, date_time.tm_mday,
-                                    languages, genres, directors, starring, supporting_actors))
-            else:
-                param_movie.append((movie_id, movie_name, average_rating, studio, mpaa_rating, runtime, description,
-                                    rank, None, None, None,
-                                    languages, genres, directors, starring, supporting_actors))
 
             if nrow % 5000 == 0:
                 execute_insert_many()
