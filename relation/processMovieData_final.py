@@ -195,7 +195,7 @@ def load_data(filename):
                             for actor_name in supporting_actors:
                                 sub_actors = pattern.findall(actor_name)
                                 for sub_actor in sub_actors:
-                                    param_cooperate.append((sub_directors, sub_actor))
+                                    param_cooperate.append((sub_director, sub_actor))
 
             if nrow % 10000 == 0:
                 execute_insert_many()
